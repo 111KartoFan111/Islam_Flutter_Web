@@ -4,10 +4,11 @@ import '../../constants/colors.dart';
 import '../../constants/strings.dart';
 import '../../constants/text_styles.dart';
 import '../../providers/auth_provider.dart';
-import '../../providers/product_provider.dart';
-import '../../models/product.dart';
+import '../../providers/order_provider.dart';
+import '../../models/order.dart';
 import '../../routes.dart';
 import '../../widgets/custom_button.dart';
+import 'orders_list.dart';
 import 'product_form.dart';
 import 'users_list.dart';
 
@@ -30,14 +31,14 @@ class _AdminPanelState extends State<AdminPanel> with SingleTickerProviderStateM
   void initState() {
     super.initState();
     _tabController = TabController(
-      length: 2,
+      length: 3,
       vsync: this,
       initialIndex: widget.initialTab,
     );
     
-    // Загружаем продукты при открытии страницы
+    // Загружаем заказы при открытии страницы
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<ProductProvider>(context, listen: false).loadProducts();
+      Provider.of<OrderProvider>(context, listen: false).loadOrders();
     });
   }
 
@@ -70,6 +71,7 @@ class _AdminPanelState extends State<AdminPanel> with SingleTickerProviderStateM
           controller: _tabController,
           tabs: const [
             Tab(text: AppStrings.products),
+            Tab(text: AppStrings.orders),
             Tab(text: AppStrings.users),
           ],
         ),
@@ -79,6 +81,9 @@ class _AdminPanelState extends State<AdminPanel> with SingleTickerProviderStateM
         children: [
           // Вкладка с товарами
           _buildProductsTab(),
+          
+          // Вкладка с заказами
+          _buildOrdersTab(),
           
           // Вкладка с пользователями
           _buildUsersTab(),
@@ -117,7 +122,24 @@ class _AdminPanelState extends State<AdminPanel> with SingleTickerProviderStateM
               );
   }
 
-  Widget _buildProductItem(Product product, ProductProvider productProvider) {
+  Widget _buildOrdersTab() {
+    final orderProvider = Provider.of<OrderProvider>(context);
+    
+    return orderProvider.isLoading
+        ? const Center(child: CircularProgressIndicator())
+        : orderProvider.orders.isEmpty
+            ? const Center(child: Text(AppStrings.noOrders))
+            : ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: orderProvider.orders.length,
+                itemBuilder: (context, index) {
+                  final order = orderProvider.orders[index];
+                  return _buildOrderItem(order, orderProvider);
+                },
+              );
+  }
+
+  Widget _buildOrderItem(Order order, OrderProvider orderProvider) {
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
       child: Padding(
@@ -125,75 +147,26 @@ class _AdminPanelState extends State<AdminPanel> with SingleTickerProviderStateM
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Изображение товара
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: product.imageUrl.startsWith('http')
-                ? Image.network(
-                    product.imageUrl,
-                    width: 80,
-                    height: 80,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        width: 80,
-                        height: 80,
-                        color: AppColors.secondary,
-                        child: const Icon(
-                          Icons.image_not_supported,
-                          color: AppColors.textSecondary,
-                        ),
-                      );
-                    },
-                  )
-                : Image.asset(
-                    product.imageUrl,
-                    width: 80,
-                    height: 80,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        width: 80,
-                        height: 80,
-                        color: AppColors.secondary,
-                        child: const Icon(
-                          Icons.image_not_supported,
-                          color: AppColors.textSecondary,
-                        ),
-                      );
-                    },
-                  ),
-            ),
-            
-            const SizedBox(width: 16),
-            
-            // Информация о товаре
+            // Информация о заказе
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    product.name,
+                    '${AppStrings.orderNumber}: ${order.number}',
                     style: AppTextStyles.heading4,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
                   ),
                   
                   const SizedBox(height: 4),
                   
                   Text(
-                    '${AppStrings.productCategory}: ${product.category}',
+                    '${AppStrings.orderDate}: ${DateFormat.yMd().format(order.dateTime)}',
                     style: AppTextStyles.bodySmall,
                   ),
                   
                   Text(
-                    '${AppStrings.price}: ${product.price} ${AppStrings.currency}',
+                    '${AppStrings.orderTotal}: ${order.total} ${AppStrings.currency}',
                     style: AppTextStyles.bodyMedium,
-                  ),
-                  
-                  Text(
-                    '${AppStrings.productStock}: ${product.stock}',
-                    style: AppTextStyles.bodySmall,
                   ),
                   
                   const SizedBox(height: 8),
@@ -207,14 +180,14 @@ class _AdminPanelState extends State<AdminPanel> with SingleTickerProviderStateM
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => ProductForm(product: product),
+                                builder: (context) => OrderDetailsScreen(order: order),
                               ),
                             );
                           },
                           style: OutlinedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 8),
                           ),
-                          child: Text(AppStrings.edit),
+                          child: Text(AppStrings.view),
                         ),
                       ),
                       
@@ -223,7 +196,7 @@ class _AdminPanelState extends State<AdminPanel> with SingleTickerProviderStateM
                       Expanded(
                         child: ElevatedButton(
                           onPressed: () {
-                            _confirmDeleteProduct(context, product, productProvider);
+                            _confirmDeleteOrder(context, order, orderProvider);
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.error,
@@ -247,16 +220,16 @@ class _AdminPanelState extends State<AdminPanel> with SingleTickerProviderStateM
     return const UsersList();
   }
 
-  void _confirmDeleteProduct(
+  void _confirmDeleteOrder(
     BuildContext context,
-    Product product,
-    ProductProvider productProvider,
+    Order order,
+    OrderProvider orderProvider,
   ) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text(AppStrings.deleteProduct),
-        content: Text('${product.name} өнімін жоюды растаңыз?'),
+        title: const Text(AppStrings.deleteOrder),
+        content: Text('${order.number} өнімін жоюды растаңыз?'),
         actions: [
           TextButton(
             onPressed: () {
@@ -268,15 +241,15 @@ class _AdminPanelState extends State<AdminPanel> with SingleTickerProviderStateM
             onPressed: () async {
               Navigator.pop(context);
               
-              final success = await productProvider.deleteProduct(product.id);
+              final success = await orderProvider.deleteOrder(order.id);
               
               if (success && mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(AppStrings.productDeleted)),
+                  SnackBar(content: Text(AppStrings.orderDeleted)),
                 );
               } else if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(productProvider.error)),
+                  SnackBar(content: Text(orderProvider.error)),
                 );
               }
             },

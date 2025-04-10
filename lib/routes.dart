@@ -6,9 +6,11 @@ import 'screens/cart_screen.dart';
 import 'screens/payment_screen.dart';
 import 'screens/auth_screen.dart';
 import 'screens/admin/admin_panel.dart';
+import 'screens/admin/orders_list.dart';
 import 'screens/admin/product_form.dart';
 import 'screens/admin/users_list.dart';
 import 'models/product.dart';
+
 
 class AppRoutes {
   static const String home = '/';
@@ -23,6 +25,8 @@ class AppRoutes {
   static const String addProduct = '/add-product';
   static const String editProduct = '/edit-product';
   static const String adminUsers = '/admin-users';
+  static const String adminOrders = '/admin-orders'; // Добавьте этот маршрут
+
 
   static Route<dynamic> generateRoute(RouteSettings settings) {
     switch (settings.name) {
@@ -81,6 +85,10 @@ class AppRoutes {
         return MaterialPageRoute(
           builder: (_) => const AdminPanel(initialTab: 1),
         );
+      case adminOrders: // Добавьте этот маршрут
+      return MaterialPageRoute(
+        builder: (_) => const AdminPanel(initialTab: 2),
+      );
 
       default:
         return MaterialPageRoute(
