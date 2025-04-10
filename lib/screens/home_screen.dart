@@ -135,7 +135,7 @@ class _HomeScreenState extends State<HomeScreen> {
       children: [
         // Фоновое изображение
         Image.asset(
-          '../../assets/images/banner.jpg',
+          'assets/images/banner.jpg',
           height: 300,
           width: double.infinity,
           fit: BoxFit.cover,

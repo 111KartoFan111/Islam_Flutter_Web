@@ -5,6 +5,11 @@ import '../../providers/product_provider.dart';
 import '../../services/order_service.dart';
 import '../../models/order.dart';
 import '../../models/product.dart';
+import '../../services/cart_service.dart';
+import '../../models/user.dart';
+import '../../models/cart_item.dart';
+import '../../services/product_service.dart';
+import '../../services/database_service.dart';
 import '../../routes.dart';
 import 'product_form.dart';
 import 'users_list.dart';
@@ -117,6 +122,9 @@ class _AdminPanelState extends State<AdminPanel> with SingleTickerProviderStateM
                               width: 50,
                               height: 50,
                               fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return const Icon(Icons.image_not_supported);
+                              },
                             )
                           : const Icon(Icons.image_not_supported),
                       title: Text(product.name),

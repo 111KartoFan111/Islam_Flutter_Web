@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import '../models/order.dart';
 
 class OrderService {
-  static const String apiUrl = 'https://localhost:3000';
+  static const String apiUrl = 'http://localhost:8080';
 
   Future<List<Order>> getAllOrders() async {
     try {

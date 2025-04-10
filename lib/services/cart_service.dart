@@ -150,28 +150,19 @@ class CartService {
   }
   
   /// Получение общей суммы корзины
-  Future<double> getCartTotal(String userId) async {
-    try {
-      final items = await getCartItems(userId);
-      
-      double total = 0;
-      for (var item in items) {
-        // Получаем актуальную цену товара
-        final productService = ProductService();
-        final product = await productService.getProductById(item.productId);
-        
-        if (product != null) {
-          total += product.price * item.quantity;
-        }
-      }
-      
-      return total;
-    } catch (e) {
-      print('Get cart total error: $e');
-      return 0;
+Future<double> getCartTotal(String userId) async {
+  try {
+    final items = await getCartItems(userId);
+    double total = 0;
+    for (var item in items) {
+      total += (item.productPrice ?? 0) * item.quantity;
     }
+    return total;
+  } catch (e) {
+    print('Get cart total error: $e');
+    return 0;
   }
-  
+}
   /// Создание заказа из корзины
   Future<String?> createOrder(
     String userId,
