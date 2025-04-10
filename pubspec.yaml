@@ -14,7 +14,7 @@ dependencies:
   cupertino_icons: ^1.0.5
   provider: ^6.0.5
   sqflite_common_ffi_web: ^0.4.0
-  sqflite_common: ^2.5.0  # Добавьте эту строку, если её нет
+  sqflite_common: ^2.5.0
   path_provider: ^2.0.15
   shared_preferences: ^2.1.1
   http: ^1.1.0

@@ -6,7 +6,7 @@ import 'screens/cart_screen.dart';
 import 'screens/payment_screen.dart';
 import 'screens/auth_screen.dart';
 import 'screens/admin/admin_panel.dart';
-import 'screens/admin/orders_list.dart';
+import 'screens/admin/admin_orders_page.dart';
 import 'screens/admin/product_form.dart';
 import 'screens/admin/users_list.dart';
 import 'models/product.dart';
@@ -86,9 +86,9 @@ class AppRoutes {
           builder: (_) => const AdminPanel(initialTab: 1),
         );
       case adminOrders: // Добавьте этот маршрут
-      return MaterialPageRoute(
-        builder: (_) => const AdminPanel(initialTab: 2),
-      );
+        return MaterialPageRoute(
+          builder: (context) => const AdminOrdersPage(),
+        );
 
       default:
         return MaterialPageRoute(

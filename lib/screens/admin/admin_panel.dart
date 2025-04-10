@@ -1,14 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../constants/colors.dart';
-import '../../constants/strings.dart';
-import '../../constants/text_styles.dart';
 import '../../providers/auth_provider.dart';
-import '../../providers/order_provider.dart';
+import '../../providers/product_provider.dart';
+import '../../services/order_service.dart';
 import '../../models/order.dart';
+import '../../models/product.dart';
 import '../../routes.dart';
-import '../../widgets/custom_button.dart';
-import 'orders_list.dart';
 import 'product_form.dart';
 import 'users_list.dart';
 
@@ -26,6 +23,9 @@ class AdminPanel extends StatefulWidget {
 
 class _AdminPanelState extends State<AdminPanel> with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  final OrderService _orderService = OrderService();
+  List<Order> orders = [];
+  bool isLoadingOrders = false;
 
   @override
   void initState() {
@@ -35,11 +35,19 @@ class _AdminPanelState extends State<AdminPanel> with SingleTickerProviderStateM
       vsync: this,
       initialIndex: widget.initialTab,
     );
-    
-    // Загружаем заказы при открытии страницы
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<OrderProvider>(context, listen: false).loadOrders();
-    });
+    _loadOrders();
+  }
+
+  Future<void> _loadOrders() async {
+    setState(() => isLoadingOrders = true);
+    try {
+      orders = await _orderService.getAllOrders();
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Ошибка загрузки заказов: $e')),
+      );
+    }
+    setState(() => isLoadingOrders = false);
   }
 
   @override
@@ -52,53 +60,36 @@ class _AdminPanelState extends State<AdminPanel> with SingleTickerProviderStateM
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
     
-    // Проверяем, является ли пользователь администратором
     if (!authProvider.isAdmin) {
       return Scaffold(
-        appBar: AppBar(
-          title: const Text(AppStrings.adminPanel),
-        ),
-        body: const Center(
-          child: Text('Тек әкімшілер үшін қол жетімді'),
-        ),
+        appBar: AppBar(title: const Text('Admin Panel')),
+        body: const Center(child: Text('Доступно только для администраторов')),
       );
     }
     
     return Scaffold(
       appBar: AppBar(
-        title: const Text(AppStrings.adminPanel),
+        title: const Text('Admin Panel'),
         bottom: TabBar(
           controller: _tabController,
           tabs: const [
-            Tab(text: AppStrings.products),
-            Tab(text: AppStrings.orders),
-            Tab(text: AppStrings.users),
+            Tab(text: 'Продукты'),
+            Tab(text: 'Заказы'),
+            Tab(text: 'Пользователи'),
           ],
         ),
       ),
       body: TabBarView(
         controller: _tabController,
         children: [
-          // Вкладка с товарами
           _buildProductsTab(),
-          
-          // Вкладка с заказами
           _buildOrdersTab(),
-          
-          // Вкладка с пользователями
           _buildUsersTab(),
         ],
       ),
       floatingActionButton: _tabController.index == 0
           ? FloatingActionButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const ProductForm(),
-                  ),
-                );
-              },
+              onPressed: () => Navigator.pushNamed(context, AppRoutes.addProduct),
               child: const Icon(Icons.add),
             )
           : null,
@@ -111,104 +102,105 @@ class _AdminPanelState extends State<AdminPanel> with SingleTickerProviderStateM
     return productProvider.isLoading
         ? const Center(child: CircularProgressIndicator())
         : productProvider.products.isEmpty
-            ? const Center(child: Text(AppStrings.noProducts))
+            ? const Center(child: Text('Нет продуктов'))
             : ListView.builder(
                 padding: const EdgeInsets.all(16),
                 itemCount: productProvider.products.length,
                 itemBuilder: (context, index) {
                   final product = productProvider.products[index];
-                  return _buildProductItem(product, productProvider);
+                  return Card(
+                    margin: const EdgeInsets.only(bottom: 16),
+                    child: ListTile(
+                      leading: product.imageUrl.isNotEmpty
+                          ? Image.network(
+                              product.imageUrl,
+                              width: 50,
+                              height: 50,
+                              fit: BoxFit.cover,
+                            )
+                          : const Icon(Icons.image_not_supported),
+                      title: Text(product.name),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('${product.price} ₸'),
+                          Text('В наличии: ${product.stock}'),
+                        ],
+                      ),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.edit),
+                            onPressed: () {
+                              Navigator.pushNamed(
+                                context,
+                                AppRoutes.editProduct,
+                                arguments: product,
+                              );
+                            },
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.delete),
+                            color: Colors.red,
+                            onPressed: () => _confirmDeleteProduct(product),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
                 },
               );
   }
 
   Widget _buildOrdersTab() {
-    final orderProvider = Provider.of<OrderProvider>(context);
-    
-    return orderProvider.isLoading
-        ? const Center(child: CircularProgressIndicator())
-        : orderProvider.orders.isEmpty
-            ? const Center(child: Text(AppStrings.noOrders))
-            : ListView.builder(
-                padding: const EdgeInsets.all(16),
-                itemCount: orderProvider.orders.length,
-                itemBuilder: (context, index) {
-                  final order = orderProvider.orders[index];
-                  return _buildOrderItem(order, orderProvider);
-                },
-              );
+    return RefreshIndicator(
+      onRefresh: _loadOrders,
+      child: isLoadingOrders
+          ? const Center(child: CircularProgressIndicator())
+          : orders.isEmpty
+              ? const Center(child: Text('Нет заказов'))
+              : ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: orders.length,
+                  itemBuilder: (context, index) {
+                    return _buildOrderItem(orders[index]);
+                  },
+                ),
+    );
   }
 
-  Widget _buildOrderItem(Order order, OrderProvider orderProvider) {
+  Widget _buildOrderItem(Order order) {
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
       child: Padding(
         padding: const EdgeInsets.all(16),
-        child: Row(
+        child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Информация о заказе
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '${AppStrings.orderNumber}: ${order.number}',
-                    style: AppTextStyles.heading4,
+            Text('Заказ #${order.id}',
+                style: const TextStyle(fontWeight: FontWeight.bold)),
+            Text('Пользователь: ${order.userName}'),
+            Text('Дата: ${order.orderDate.toString()}'),
+            Text('Сумма: ${order.totalAmount} ₸'),
+            Text('Статус: ${order.status}'),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => _showOrderDetails(order),
+                    child: const Text('Просмотр'),
                   ),
-                  
-                  const SizedBox(height: 4),
-                  
-                  Text(
-                    '${AppStrings.orderDate}: ${DateFormat.yMd().format(order.dateTime)}',
-                    style: AppTextStyles.bodySmall,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () => _editOrderStatus(order),
+                    child: const Text('Изменить статус'),
                   ),
-                  
-                  Text(
-                    '${AppStrings.orderTotal}: ${order.total} ${AppStrings.currency}',
-                    style: AppTextStyles.bodyMedium,
-                  ),
-                  
-                  const SizedBox(height: 8),
-                  
-                  // Кнопки действий
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => OrderDetailsScreen(order: order),
-                              ),
-                            );
-                          },
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 8),
-                          ),
-                          child: Text(AppStrings.view),
-                        ),
-                      ),
-                      
-                      const SizedBox(width: 8),
-                      
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: () {
-                            _confirmDeleteOrder(context, order, orderProvider);
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.error,
-                            padding: const EdgeInsets.symmetric(vertical: 8),
-                          ),
-                          child: Text(AppStrings.delete),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
           ],
         ),
@@ -220,43 +212,104 @@ class _AdminPanelState extends State<AdminPanel> with SingleTickerProviderStateM
     return const UsersList();
   }
 
-  void _confirmDeleteOrder(
-    BuildContext context,
-    Order order,
-    OrderProvider orderProvider,
-  ) {
+  void _showOrderDetails(Order order) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text(AppStrings.deleteOrder),
-        content: Text('${order.number} өнімін жоюды растаңыз?'),
+        title: Text('Заказ #${order.id}'),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Пользователь: ${order.userName}'),
+              Text('Дата: ${order.orderDate}'),
+              Text('Сумма: ${order.totalAmount} ₸'),
+              Text('Статус: ${order.status}'),
+              const Divider(),
+              const Text('Товары:', style: TextStyle(fontWeight: FontWeight.bold)),
+              ...order.items.map((item) => Padding(
+                    padding: const EdgeInsets.only(left: 8.0),
+                    child: Text(
+                        '${item.productName} x${item.quantity} - ${item.price} ₸'),
+                  )),
+            ],
+          ),
+        ),
         actions: [
           TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-            },
-            child: Text(AppStrings.cancel),
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Закрыть'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _editOrderStatus(Order order) async {
+    final statusController = TextEditingController(text: order.status);
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Изменить статус'),
+        content: TextField(
+          controller: statusController,
+          decoration: const InputDecoration(labelText: 'Новый статус'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Отмена'),
           ),
           ElevatedButton(
             onPressed: () async {
-              Navigator.pop(context);
-              
-              final success = await orderProvider.deleteOrder(order.id);
-              
-              if (success && mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(AppStrings.orderDeleted)),
+              try {
+                await _orderService.updateOrderStatus(
+                  order.id,
+                  statusController.text,
                 );
-              } else if (mounted) {
+                await _loadOrders();
+                if (mounted) Navigator.pop(context);
+              } catch (e) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(orderProvider.error)),
+                  SnackBar(content: Text('Ошибка: $e')),
                 );
               }
             },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.error,
-            ),
-            child: Text(AppStrings.delete),
+            child: const Text('Сохранить'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmDeleteProduct(Product product) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Удалить продукт'),
+        content: Text('Вы уверены, что хотите удалить ${product.name}?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Отмена'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () async {
+              final productProvider = Provider.of<ProductProvider>(context, listen: false);
+              try {
+                await productProvider.deleteProduct(product.id);
+                if (mounted) Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Продукт удален')),
+                );
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Ошибка при удалении: $e')),
+                );
+              }
+            },
+            child: const Text('Удалить'),
           ),
         ],
       ),

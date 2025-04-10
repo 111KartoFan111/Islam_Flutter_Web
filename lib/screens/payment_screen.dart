@@ -318,6 +318,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
     );
   }
 
+  
+
   Widget _buildAddressField() {
     return TextFormField(
       controller: _addressController,
@@ -346,30 +348,45 @@ class _PaymentScreenState extends State<PaymentScreen> {
     });
 
     try {
-      // Имитация обработки платежа
-      await Future.delayed(const Duration(seconds: 2));
-      
-      // Очищаем корзину после успешной оплаты
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       final cartProvider = Provider.of<CartProvider>(context, listen: false);
       
-      if (authProvider.isLoggedIn) {
+      // Создаем заказ через OrderService
+      final orderService = OrderService();
+      final order = Order(
+        id: '', // ID будет сгенерирован сервером
+        userId: authProvider.user!.id,
+        userName: authProvider.user!.name,
+        orderDate: DateTime.now(),
+        totalAmount: cartProvider.totalAmount,
+        status: 'pending',
+        items: cartProvider.items.map((item) => OrderItem(
+          productId: item.productId,
+          productName: item.productName ?? '',
+          quantity: item.quantity,
+          price: item.productPrice ?? 0,
+        )).toList(),
+      );
+
+      final orderId = await orderService.createOrder(order);
+
+      if (orderId != null && authProvider.isLoggedIn) {
         await cartProvider.clearCart(authProvider.user!.id);
       }
-      
-      // Показываем сообщение об успешной оплате
+
       if (!mounted) return;
-      
-      // Переходим на экран успешной оплаты
       _showSuccessDialog();
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString())),
+        SnackBar(content: Text('Ошибка при оформлении заказа: $e')),
       );
     } finally {
-      setState(() {
-        _isProcessing = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isProcessing = false;
+        });
+      }
     }
   }
 
