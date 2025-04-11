@@ -125,35 +125,68 @@ class DatabaseService {
     _store['products'] = [
       {
         'id': '1',
-        'name': 'Qazaq Republic Classic футболка',
-        'description': 'Классикалық мақта футболка. 100% табиғи материал.',
+        'name': 'ФУТБОЛКА QAZAQ REPUBLIC ЧЁРНАЯ',
+        'description': 'лёгкие и удобные футболки на каждый день. в коллекции представлены как базовые, так и модели с принтом. выполнены в фирменном лекале qr.',
         'price': 7990.0,
         'image_url': '/assets/images/tshirt_black.jpg',
         'sizes': 'S,M,L,XL,XXL',
         'colors': 'Қара,Ақ,Сұр',
-        'category': 'Футболкалар',
+        'category': 'Футболка',
         'stock': 50
       },
       {
         'id': '2',
-        'name': 'Qazaq Republic Худи',
-        'description': 'Жылы худи, қысқа және күзге арналған.',
+        'name': 'ХУДИ QAZAQ REPUBLIC ЧЁРНЫЙ',
+        'description': 'худи. удобная и практичная одежда на каждый день. в коллекции есть как базовые, так и модели с принтами. выполнена в фирменном лекале qr.',
         'price': 14990.0,
         'image_url': '/assets/images/Hoode.jpeg',
         'sizes': 'S,M,L,XL,XXL',
         'colors': 'Қара,Сұр,Көк',
-        'category': 'Худи',
+        'category': 'Біржуйде',
         'stock': 30
       },
       {
         'id': '3',
-        'name': 'Qazaq Republic Жейде',
-        'description': 'Классикалық стильдегі жейде.',
+        'name': 'РУБАШКА LS ТЕМНО СИНЯЯ',
+        'description': 'удобные и практичные рубашки с карманом на каждый день. базовые цвета отлично подходят для повседневных образов. сделана в фирменном лекале qr.',
         'price': 11990.0,
         'image_url': '/assets/images/shirtlongdark-blue.jpeg',
         'sizes': 'S,M,L,XL',
         'colors': 'Ақ,Көк,Қара',
         'category': 'Жейде',
+        'stock': 25
+      },
+      {
+        'id': '4',
+        'name': 'БРЮКИ 90S ЧЕРНЫЕ',
+        'description': '90s. новая модель свободного кроя с мягкой резинкой на поясе. для ежедневных стрит луков.',
+        'price': 20990.0,
+        'image_url': '/assets/images/pantsblack.jpeg',
+        'sizes': 'S,M,L,XL,XXL',
+        'colors': 'Қара,Ақ,Сұр',
+        'category': 'Шалбар',
+        'stock': 50
+      },
+      {
+        'id': '5',
+        'name': 'БРЮКИ CARGO ГРАФИТОВЫЕ',
+        'description': 'cargo. брюки свободного кроя. отлично дополнят ежедневный стрит лук. имеются завязки для регулирования ширины. боковые карманы придают дополнительную функциональность.',
+        'price': 14990.0,
+        'image_url': '/assets/images/pantscargo.jpeg',
+        'sizes': 'S,M,L,XL,XXL',
+        'colors': 'Қара,Сұр,Көк',
+        'category': 'Шалбар',
+        'stock': 30
+      },
+      {
+        'id': '6',
+        'name': 'БРЮКИ KEÑ ЧЕРНЫЕ',
+        'description': 'keñ. базовые джинсы свободного кроя. идеально подходят для образов на каждый день. сделаны в фирменном лекале qr.',
+        'price': 22990.0,
+        'image_url': '/assets/images/pantskei.jpeg',
+        'sizes': 'S,M,L,XL',
+        'colors': 'Ақ,Көк,Қара',
+        'category': 'Шалбар',
         'stock': 25
       }
     ];
