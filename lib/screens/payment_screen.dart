@@ -6,6 +6,7 @@ import '../constants/strings.dart';
 import '../constants/text_styles.dart';
 import '../providers/auth_provider.dart';
 import '../providers/cart_provider.dart';
+import '../services/local_order_service.dart'; // Импортируем новый сервис
 import '../widgets/custom_button.dart';
 import '../routes.dart';
 
@@ -32,6 +33,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
   String _paymentMethod = 'card'; // 'card' или 'cash'
   bool _isProcessing = false;
   bool _sameAsBillingAddress = true;
+  final LocalOrderService _orderService = LocalOrderService(); // Инициализируем сервис
 
   @override
   void dispose() {
@@ -226,11 +228,13 @@ class _PaymentScreenState extends State<PaymentScreen> {
             _CardNumberFormatter(),
           ],
           validator: (value) {
-            if (value == null || value.isEmpty) {
-              return AppStrings.fieldRequired;
-            }
-            if (value.replaceAll(' ', '').length < 16) {
-              return AppStrings.invalidCardNumber;
+            if (_paymentMethod == 'card') {
+              if (value == null || value.isEmpty) {
+                return AppStrings.fieldRequired;
+              }
+              if (value.replaceAll(' ', '').length < 16) {
+                return AppStrings.invalidCardNumber;
+              }
             }
             return null;
           },
@@ -247,8 +251,10 @@ class _PaymentScreenState extends State<PaymentScreen> {
           ),
           textCapitalization: TextCapitalization.words,
           validator: (value) {
-            if (value == null || value.isEmpty) {
-              return AppStrings.fieldRequired;
+            if (_paymentMethod == 'card') {
+              if (value == null || value.isEmpty) {
+                return AppStrings.fieldRequired;
+              }
             }
             return null;
           },
@@ -274,11 +280,13 @@ class _PaymentScreenState extends State<PaymentScreen> {
                   _ExpiryDateFormatter(),
                 ],
                 validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return AppStrings.fieldRequired;
-                  }
-                  if (value.length < 5) {
-                    return AppStrings.invalidExpiryDate;
+                  if (_paymentMethod == 'card') {
+                    if (value == null || value.isEmpty) {
+                      return AppStrings.fieldRequired;
+                    }
+                    if (value.length < 5) {
+                      return AppStrings.invalidExpiryDate;
+                    }
                   }
                   return null;
                 },
@@ -302,11 +310,13 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 ],
                 obscureText: true,
                 validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return AppStrings.fieldRequired;
-                  }
-                  if (value.length < 3) {
-                    return AppStrings.invalidCVV;
+                  if (_paymentMethod == 'card') {
+                    if (value == null || value.isEmpty) {
+                      return AppStrings.fieldRequired;
+                    }
+                    if (value.length < 3) {
+                      return AppStrings.invalidCVV;
+                    }
                   }
                   return null;
                 },
@@ -349,37 +359,65 @@ class _PaymentScreenState extends State<PaymentScreen> {
       // Имитация обработки платежа
       await Future.delayed(const Duration(seconds: 2));
       
-      // Очищаем корзину после успешной оплаты
+      // Получаем данные пользователя и корзины
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       final cartProvider = Provider.of<CartProvider>(context, listen: false);
       
-      if (authProvider.isLoggedIn) {
-        await cartProvider.clearCart(authProvider.user!.id);
+      if (!authProvider.isLoggedIn) {
+        throw Exception('Пользователь не авторизован');
       }
       
-      // Показываем сообщение об успешной оплате
-      if (!mounted) return;
+      // Получаем адрес доставки
+      final address = _addressController.text.isNotEmpty
+          ? _addressController.text
+          : "Не указан"; // На реальном проекте можно использовать адрес из профиля
       
-      // Переходим на экран успешной оплаты
-      _showSuccessDialog();
+      // Создаем заказ
+      final orderId = await _orderService.createOrderFromCart(
+        userId: authProvider.user!.id,
+        userName: authProvider.user!.name,
+        cartItems: cartProvider.items,
+        totalAmount: widget.totalAmount,
+        address: address,
+        paymentMethod: _paymentMethod,
+      );
+      
+      // Очищаем корзину после успешного создания заказа
+      if (orderId != null) {
+        await cartProvider.clearCart(authProvider.user!.id);
+        
+        // Показываем сообщение об успешной оплате
+        if (mounted) {
+          _showSuccessDialog(orderId);
+        }
+      } else {
+        throw Exception('Не удалось создать заказ');
+      }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString())),
+        SnackBar(content: Text('Ошибка: ${e.toString()}')),
       );
-    } finally {
       setState(() {
         _isProcessing = false;
       });
     }
   }
 
-  void _showSuccessDialog() {
+  void _showSuccessDialog(String orderId) {
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
         title: const Text(AppStrings.paymentSuccessful),
-        content: const Text('Тапсырысыңыз қабылданды! Жақын арада сізге қоңырау шалады.'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Тапсырысыңыз қабылданды! Жақын арада сізге қоңырау шалады.'),
+            const SizedBox(height: 8),
+            Text('Тапсырыс нөмірі: #${orderId.substring(0, 8)}...'),
+          ],
+        ),
         actions: [
           ElevatedButton(
             onPressed: () {

@@ -80,7 +80,7 @@ class AppRoutes {
         return MaterialPageRoute(
           builder: (_) => ProductForm(product: product),
         );
-      
+
       case adminUsers:
         return MaterialPageRoute(
           builder: (_) => const AdminPanel(initialTab: 1),

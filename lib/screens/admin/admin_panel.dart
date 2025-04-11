@@ -2,23 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/product_provider.dart';
-import '../../services/order_service.dart';
-import '../../models/order.dart';
 import '../../models/product.dart';
-import '../../services/cart_service.dart';
-import '../../models/user.dart';
-import '../../models/cart_item.dart';
-import '../../services/product_service.dart';
-import '../../services/database_service.dart';
+import '../../services/local_order_service.dart'; // Новый сервис
 import '../../routes.dart';
 import 'product_form.dart';
 import 'users_list.dart';
+import 'admin_orders_page.dart'; // Новый импорт
 
 class AdminPanel extends StatefulWidget {
   final int initialTab;
 
   const AdminPanel({
-    Key? key,
+    Key? key, 
     this.initialTab = 0,
   }) : super(key: key);
 
@@ -28,9 +23,6 @@ class AdminPanel extends StatefulWidget {
 
 class _AdminPanelState extends State<AdminPanel> with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  final OrderService _orderService = OrderService();
-  List<Order> orders = [];
-  bool isLoadingOrders = false;
 
   @override
   void initState() {
@@ -40,19 +32,6 @@ class _AdminPanelState extends State<AdminPanel> with SingleTickerProviderStateM
       vsync: this,
       initialIndex: widget.initialTab,
     );
-    _loadOrders();
-  }
-
-  Future<void> _loadOrders() async {
-    setState(() => isLoadingOrders = true);
-    try {
-      orders = await _orderService.getAllOrders();
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Ошибка загрузки заказов: $e')),
-      );
-    }
-    setState(() => isLoadingOrders = false);
   }
 
   @override
@@ -79,7 +58,7 @@ class _AdminPanelState extends State<AdminPanel> with SingleTickerProviderStateM
           controller: _tabController,
           tabs: const [
             Tab(text: 'Продукты'),
-            Tab(text: 'Заказы'),
+            Tab(text: 'Заказы'), // Изменили порядок (заказы стали вторым табом)
             Tab(text: 'Пользователи'),
           ],
         ),
@@ -88,7 +67,7 @@ class _AdminPanelState extends State<AdminPanel> with SingleTickerProviderStateM
         controller: _tabController,
         children: [
           _buildProductsTab(),
-          _buildOrdersTab(),
+          const AdminOrdersPage(), // Используем отдельный виджет для заказов
           _buildUsersTab(),
         ],
       ),
@@ -161,133 +140,8 @@ class _AdminPanelState extends State<AdminPanel> with SingleTickerProviderStateM
               );
   }
 
-  Widget _buildOrdersTab() {
-    return RefreshIndicator(
-      onRefresh: _loadOrders,
-      child: isLoadingOrders
-          ? const Center(child: CircularProgressIndicator())
-          : orders.isEmpty
-              ? const Center(child: Text('Нет заказов'))
-              : ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: orders.length,
-                  itemBuilder: (context, index) {
-                    return _buildOrderItem(orders[index]);
-                  },
-                ),
-    );
-  }
-
-  Widget _buildOrderItem(Order order) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 16),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Заказ #${order.id}',
-                style: const TextStyle(fontWeight: FontWeight.bold)),
-            Text('Пользователь: ${order.userName}'),
-            Text('Дата: ${order.orderDate.toString()}'),
-            Text('Сумма: ${order.totalAmount} ₸'),
-            Text('Статус: ${order.status}'),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () => _showOrderDetails(order),
-                    child: const Text('Просмотр'),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () => _editOrderStatus(order),
-                    child: const Text('Изменить статус'),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _buildUsersTab() {
     return const UsersList();
-  }
-
-  void _showOrderDetails(Order order) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Заказ #${order.id}'),
-        content: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Пользователь: ${order.userName}'),
-              Text('Дата: ${order.orderDate}'),
-              Text('Сумма: ${order.totalAmount} ₸'),
-              Text('Статус: ${order.status}'),
-              const Divider(),
-              const Text('Товары:', style: TextStyle(fontWeight: FontWeight.bold)),
-              ...order.items.map((item) => Padding(
-                    padding: const EdgeInsets.only(left: 8.0),
-                    child: Text(
-                        '${item.productName} x${item.quantity} - ${item.price} ₸'),
-                  )),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Закрыть'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _editOrderStatus(Order order) async {
-    final statusController = TextEditingController(text: order.status);
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Изменить статус'),
-        content: TextField(
-          controller: statusController,
-          decoration: const InputDecoration(labelText: 'Новый статус'),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Отмена'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              try {
-                await _orderService.updateOrderStatus(
-                  order.id,
-                  statusController.text,
-                );
-                await _loadOrders();
-                if (mounted) Navigator.pop(context);
-              } catch (e) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Ошибка: $e')),
-                );
-              }
-            },
-            child: const Text('Сохранить'),
-          ),
-        ],
-      ),
-    );
   }
 
   void _confirmDeleteProduct(Product product) {
