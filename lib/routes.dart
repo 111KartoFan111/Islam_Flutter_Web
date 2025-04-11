@@ -87,7 +87,7 @@ class AppRoutes {
         );
       case adminOrders: // Добавьте этот маршрут
         return MaterialPageRoute(
-          builder: (context) => const AdminOrdersPage(),
+          builder: (_) => const AdminPanel(initialTab: 2),
         );
 
       default:
