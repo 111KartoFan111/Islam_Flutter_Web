@@ -293,12 +293,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
   IconData _getCategoryIcon(String category) {
     switch (category.toLowerCase()) {
-      case 'футболкалар':
+      case 'Футболка':
         return Icons.check_box_outline_blank;
-      case 'худи':
-        return Icons.people_alt_outlined;
-      case 'жейде':
-        return Icons.checkroom_outlined;
+      case 'Біржуйде':
+        return Icons.check_box_outline_blank;
+      case 'Жейде':
+        return Icons.check_box_outline_blank;
+      case 'Шалбар':
+        return Icons.check_box_outline_blank;
       default:
         return Icons.category;
     }
