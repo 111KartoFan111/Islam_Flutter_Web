@@ -103,19 +103,19 @@ class _AdminOrdersPageState extends State<AdminOrdersPage> {
     // Определяем цвет статуса
     Color statusColor;
     switch (order.status.toLowerCase()) {
-      case 'pending':
+      case 'в ожидании':
         statusColor = Colors.orange;
         break;
-      case 'processing':
+      case 'обработка':
         statusColor = Colors.blue;
         break;
-      case 'shipped':
+      case 'отправленный':
         statusColor = Colors.indigo;
         break;
-      case 'delivered':
+      case 'доставленный':
         statusColor = Colors.green;
         break;
-      case 'cancelled':
+      case 'отменен':
         statusColor = Colors.red;
         break;
       default:
@@ -133,7 +133,7 @@ class _AdminOrdersPageState extends State<AdminOrdersPage> {
               children: [
                 Expanded(
                   child: Text(
-                    'Заказ #${order.id.substring(0, 8)}...',
+                    'Тапсырыс #${order.id.substring(0, 8)}...',
                     style: AppTextStyles.heading4,
                   ),
                 ),
@@ -158,13 +158,13 @@ class _AdminOrdersPageState extends State<AdminOrdersPage> {
             ),
             const SizedBox(height: 8),
             Text('Клиент: ${order.userName}'),
-            Text('Дата: $formattedDate'),
-            Text('Сумма: ${order.totalAmount} ${AppStrings.currency}'),
+            Text('Күн: $formattedDate'),
+            Text('сомасы: ${order.totalAmount} ${AppStrings.currency}'),
             const SizedBox(height: 8),
             const Divider(),
             const SizedBox(height: 8),
             Text(
-              'Товары (${order.items.length}):',
+              'Тауарлар (${order.items.length}):',
               style: const TextStyle(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 4),
@@ -179,7 +179,7 @@ class _AdminOrdersPageState extends State<AdminOrdersPage> {
                 Expanded(
                   child: OutlinedButton.icon(
                     icon: const Icon(Icons.visibility),
-                    label: const Text('Подробнее'),
+                    label: const Text('Толығырақ'),
                     onPressed: () => _showOrderDetails(order),
                   ),
                 ),
@@ -187,7 +187,7 @@ class _AdminOrdersPageState extends State<AdminOrdersPage> {
                 Expanded(
                   child: ElevatedButton.icon(
                     icon: const Icon(Icons.edit),
-                    label: const Text('Статус'),
+                    label: const Text('Күй'),
                     onPressed: () => _editOrderStatus(order),
                   ),
                 ),
@@ -207,18 +207,18 @@ class _AdminOrdersPageState extends State<AdminOrdersPage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Заказ #${order.id.substring(0, 8)}...'),
+        title: Text('Тапсырыс #${order.id.substring(0, 8)}...'),
         content: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
               Text('Клиент: ${order.userName}'),
-              Text('Дата: $formattedDate'),
-              Text('Статус: ${order.status}'),
-              Text('Сумма: ${order.totalAmount} ${AppStrings.currency}'),
+              Text('Күн: $formattedDate'),
+              Text('Күй: ${order.status}'),
+              Text('сомасы: ${order.totalAmount} ${AppStrings.currency}'),
               const SizedBox(height: 16),
-              const Text('Товары:', style: TextStyle(fontWeight: FontWeight.bold)),
+              const Text('Тауарлар:', style: TextStyle(fontWeight: FontWeight.bold)),
               ...order.items.map((item) => Padding(
                 padding: const EdgeInsets.only(left: 8.0, top: 4.0),
                 child: Column(
@@ -228,7 +228,7 @@ class _AdminOrdersPageState extends State<AdminOrdersPage> {
                     Padding(
                       padding: const EdgeInsets.only(left: 16.0),
                       child: Text(
-                        'Количество: ${item.quantity} x ${item.price} ${AppStrings.currency} = ${item.price * item.quantity} ${AppStrings.currency}',
+                        'Саны: ${item.quantity} x ${item.price} ${AppStrings.currency} = ${item.price * item.quantity} ${AppStrings.currency}',
                         style: AppTextStyles.bodySmall,
                       ),
                     ),
@@ -241,7 +241,7 @@ class _AdminOrdersPageState extends State<AdminOrdersPage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Закрыть'),
+            child: const Text('Жабу'),
           ),
         ],
       ),
@@ -262,7 +262,7 @@ class _AdminOrdersPageState extends State<AdminOrdersPage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Изменить статус заказа'),
+        title: const Text('Тапсырыс күйін өзгерту'),
         content: StatefulBuilder(
           builder: (context, setState) => Column(
             mainAxisSize: MainAxisSize.min,
@@ -281,7 +281,7 @@ class _AdminOrdersPageState extends State<AdminOrdersPage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Отмена'),
+            child: const Text('Болдырмау'),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -290,7 +290,7 @@ class _AdminOrdersPageState extends State<AdminOrdersPage> {
               // Показываем индикатор загрузки
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
-                  content: Text('Обновление статуса...'),
+                  content: Text('Күйді жаңарту...'),
                   duration: Duration(seconds: 1),
                 ),
               );
@@ -304,26 +304,26 @@ class _AdminOrdersPageState extends State<AdminOrdersPage> {
                   if (mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
-                        content: Text('Статус заказа успешно обновлен'),
+                        content: Text('Тапсырыс күйі сәтті жаңартылды'),
                         backgroundColor: AppColors.success,
                       ),
                     );
                   }
                 } else {
-                  throw Exception('Не удалось обновить статус');
+                  throw Exception('Күйді жаңарту мүмкін болмады');
                 }
               } catch (e) {
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('Ошибка: ${e.toString()}'),
+                      content: Text('Қате: ${e.toString()}'),
                       backgroundColor: AppColors.error,
                     ),
                   );
                 }
               }
             },
-            child: const Text('Сохранить'),
+            child: const Text('Сақтау'),
           ),
         ],
       ),
